@@ -68,6 +68,8 @@ ROBOTSTXT_OBEY = True
 #    'ed2000.pipelines.SomePipeline': 300,
 #}
 ITEM_PIPELINES = {
+    'ed2000.pipelines.ValidatePipeline': 100,
+    'ed2000.pipelines.GetImagesPipeline': 200,
     'ed2000.pipelines.MongoDBPipeline': 300,
 }
 MONGODB_SERVER = "localhost"

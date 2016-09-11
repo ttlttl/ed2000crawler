@@ -17,4 +17,4 @@ class Ed2000Item(scrapy.Item):
     image_urls = scrapy.Field()
     image_paths = scrapy.Field()
     magnet_uri = scrapy.Field()
-    ed2k_uri = scrapy.Field()
+    ed2k_uris = scrapy.Field()

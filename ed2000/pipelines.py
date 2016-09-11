@@ -9,44 +9,37 @@
 import pymongo
 from scrapy.conf import settings
 from scrapy.exceptions import DropItem
-from scrapy.contrib.pipeline.images import ImagesPipeline
+from scrapy.pipelines.images import ImagesPipeline
 from scrapy import log, Request
 
 
-class DuplicatePipeline(object):
-
-    def __init__(self):
-        self.seen = set()
-
-    def process_item(self, item, spieder):
-        if False:
-            raise DropItem("Duplicate item found: %s" % item)
-        else:
-            self.seen.add(item)
-            return item
-
-
+#验证，去除空项
 class ValidatePipeline(object):
 
     def process_item(self, item ,spider):
+        if not item.get('name') or not (item.get('magnet_uri') or item.get('ed2k_uris')):
+            raise DropItem('Drop %s' % item['name'])
         return item
 
 
+#下载简介图片
 class GetImagesPipeline(ImagesPipeline):
 
     def get_media_requests(self, item, info):
-        url = item['image_url']
-        yield Request(url)
+        for url in item['image_urls']:
+            yield Request(url)
 
     def item_completed(self, results, item, info):
-        image_path = [x['path'] for ok, x in results if ok]
-        if not image_path:
+        image_paths = [x['path'] for ok, x in results if ok]
+        if not image_paths:
             raise DropItem("Item contains no images")
-        item['image_path'] = image_path
+        item['image_paths'] = image_paths
         return item
 
 
+#存储
 class MongoDBPipeline(object):
+
     def __init__(self):
         connection=pymongo.MongoClient(
             settings['MONGODB_SERVER'],
@@ -56,12 +49,6 @@ class MongoDBPipeline(object):
         self.collection=db[settings['MONGODB_COLLECTION']]
 
     def process_item(self, item, spider):
-        valid = True
-        for data in item:
-            if not data:
-                valid = False
-                raise DropItem('Missing{0}!'.format(data))
-        if valid:
-            self.collection.insert(dict(item))
-            log.msg('Item added to Mongodb!', level=log.DEBUG, spider=spider)
+        self.collection.insert(dict(item))
+        log.msg('Item added to Mongodb!', level=log.DEBUG, spider=spider)
         return item
